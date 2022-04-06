@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @RestController
@@ -31,19 +32,26 @@ public class UserController {
         try {
 
             String url = "https://gorest.co.in/public/v2/users/" + userId;
+            String apiToken = env.getProperty("GOREST_TOKEN");
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(env.getProperty("GOREST_TOKEN"));
-            HttpEntity request = new HttpEntity(headers);
-
-            return restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    request,
-                    Object.class
-            );
+           //Manual Approach
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.setBearerAuth(env.getProperty("GOREST_TOKEN"));
+//            HttpEntity request = new HttpEntity(headers);
+//
+//            return restTemplate.exchange(
+//                    url,
+//                    HttpMethod.GET,
+//                    request,
+//                    Object.class
+//            );
 
             //return restTemplate.getForObject(url, Object.class);
+
+            //Shortened Approach
+            url += "?access-token=" + apiToken;
+
+            return restTemplate.getForObject(url, Object.class);
 
         } catch (Exception exception) {
             return "404: No user exist with the ID " + userId;
@@ -61,23 +69,35 @@ public class UserController {
             String url = "https://gorest.co.in/public/v2/users/" + userId;
 
             String token = env.getProperty("GOREST_TOKEN");
-            HttpHeaders headers = new HttpHeaders();
-
-            headers.setBearerAuth(token);
-
-            HttpEntity request = new HttpEntity(headers);
-
-            restTemplate.exchange(
-                    url,
-                    HttpMethod.DELETE,
-                    request,
-                    Object.class
-            );
+//            HttpHeaders headers = new HttpHeaders();
+//
+//            headers.setBearerAuth(token);
+//
+//            HttpEntity request = new HttpEntity(headers);
+//
+//            restTemplate.exchange(
+//                    url,
+//                    HttpMethod.DELETE,
+//                    request,
+//                    Object.class
+//            );
             //headers.set("Authorization", "Bearer " + token);
-            //restTemplate.delete(url);
+
+            url += "?access-token=" + token;
+
+            restTemplate.delete(url);
+
             return "Successfully Deleted user #" + userId;
 
-        } catch (Exception exception) {
+        } catch (HttpClientErrorException.NotFound exception) {
+
+                return "User could not be delete, user #" + userId + " does not exist";
+
+        }  catch (HttpClientErrorException.Unauthorized exception) {
+
+            return "You are not authorized to delete user #" + userId;
+
+        }  catch  (Exception exception) {
             return exception.getMessage();
         }
     }
