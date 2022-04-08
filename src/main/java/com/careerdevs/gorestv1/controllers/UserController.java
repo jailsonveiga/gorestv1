@@ -1,5 +1,6 @@
 package com.careerdevs.gorestv1.controllers;
 
+import com.careerdevs.gorestv1.models.UserModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
@@ -51,7 +52,13 @@ public class UserController {
             //Shortened Approach
             url += "?access-token=" + apiToken;
 
-            return restTemplate.getForObject(url, Object.class);
+           var user  = restTemplate.getForObject(url, UserModel.class);
+
+            assert user != null;
+            System.out.println("Report: \n" + user.generateReport());
+
+           return user;
+//            return restTemplate.getForObject(url, UserModel.class);
 
         } catch (Exception exception) {
             return "404: No user exist with the ID " + userId;
@@ -98,7 +105,10 @@ public class UserController {
             return "You are not authorized to delete user #" + userId;
 
         }  catch  (Exception exception) {
+            System.out.println(exception.getClass());
             return exception.getMessage();
         }
     }
+
+
 }
