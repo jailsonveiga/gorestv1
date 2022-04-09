@@ -1,6 +1,7 @@
 package com.careerdevs.gorestv1.controllers;
 
 import com.careerdevs.gorestv1.models.UserModel;
+import com.careerdevs.gorestv1.models.UserModelArray;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.web.client.RestTemplateAutoConfiguration;
 import org.springframework.core.env.Environment;
@@ -8,6 +9,8 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping ("/api/user")
@@ -22,6 +25,35 @@ public class UserController {
         return env.getProperty("GOREST_TOKEN");
     }
 
+    //(URL / endpoint) GET http://localhost:4444/api/user/page
+    @GetMapping("/page/{pageNum}")
+        public Object getPage(
+                RestTemplate restTemplate,
+                @PathVariable ("pageNum") String pageNumber
+    ){
+
+        try{
+
+            String url = "https://gorest.co.in/public/v2/users?page=" + pageNumber;
+
+            ResponseEntity<UserModel[]> response = restTemplate.getForEntity(url, UserModel[].class);
+
+            UserModel[] firstPageUser = response.getBody();
+
+            HttpHeaders responseHeaders = response.getHeaders();
+
+            String totalPages = Objects.requireNonNull(responseHeaders.get("X-Pagination-Pages")).get(0);
+
+//            System.out.println("Total Pages: " + totalPages);
+
+            return new ResponseEntity<>(firstPageUser, HttpStatus.OK);
+
+        } catch(Exception e) {
+            System.out.println(e.getClass());
+            System.out.println(e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     //(URL / endpoint) GET http://localhost:4444/api/user/{id}
     @GetMapping("/{id}")
@@ -115,7 +147,7 @@ public class UserController {
         }
     }
 
-    @PostMapping("/")
+    @PostMapping("/qp")
     public Object postUserQueryParam(
             @RequestParam("name") String name,
             @RequestParam("email") String email,
