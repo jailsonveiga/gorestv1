@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 
 @RestController
@@ -18,12 +20,47 @@ public class UserController {
     @Autowired
     Environment env;
 
+    @GetMapping("all")
+    public ResponseEntity getAll(RestTemplate restTemplate){
+        try{
+            ArrayList<UserModel> allUsers = new ArrayList<>();
+            String url = "https://gorest.co.in/public/v2/users";
+
+            ResponseEntity<UserModel[]> response = restTemplate.getForEntity(url, UserModel[].class);
+            allUsers.addAll(Arrays.asList(Objects.requireNonNull(response.getBody())));
+
+            int totalPageNumber = 4; // Integer.parseInt(response.getHeaders().get("X-Pagination-Pages").get(0));
+
+            for(int i = 2; i <= totalPageNumber; i++) {
+                String tempUrl = url + "?page=" + i;
+                UserModel[] pageData = restTemplate.getForObject(tempUrl, UserModel[].class);
+                allUsers.addAll(Arrays.asList(Objects.requireNonNull(pageData)));
+            }
+
+
+            return new ResponseEntity(allUsers, HttpStatus.OK);
+
+
+        }
+        catch(Exception e) {
+            System.out.println(e.getClass());
+            System.out.println(e.getMessage());
+            return new ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     //URL / endpoint http://localhost:4444/api/user/token
     @GetMapping("/token")
     public String getToken() {
 
         return env.getProperty("GOREST_TOKEN");
     }
+
+//    //(URL / endpoint) GET http://localhost:4444/api/user/page
+//    @GetMapping("/all")
+//    public ResponseEntity getAll(
+//            RestTemplate restTemplate
+//    )
 
     //(URL / endpoint) GET http://localhost:4444/api/user/page
     @GetMapping("/page/{pageNum}")
@@ -200,5 +237,37 @@ public class UserController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+    }
+
+    @PutMapping("/")
+    public ResponseEntity putUser(
+            RestTemplate restTemplate,
+            @RequestBody UserModel updateData
+    ) {
+        try{
+
+            String url = "https://gorest.co.in/public/v2/users/" + updateData.getId();
+            String token = env.getProperty("GOREST_TOKEN");
+            url += "?access-token=" + token;
+
+            HttpEntity<UserModel> request = new HttpEntity<>(updateData);
+
+            ResponseEntity<UserModel> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.PUT,
+                    request,
+                    UserModel.class
+            );
+
+                    return new ResponseEntity(response.getBody(), HttpStatus.OK);
+
+        } catch(HttpClientErrorException.UnprocessableEntity e){
+
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
+
+        }catch(Exception e) {
+            System.out.println(e.getClass() + " \n" + e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
